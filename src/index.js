@@ -543,6 +543,25 @@ class Superlogin extends EventEmitter2 {
 			options.windowOptions = options.windowOptions || 'location=0,status=0,width=800,height=600';
 			const _oauthWindow = window.open(url, options.windowName, options.windowOptions);
 
+			const listener = e => {
+				if (e.origin === this._config.serverUrl) {
+					const { error, session, link } = e.data;
+
+					if (!error && session) {
+						session.serverTimeDiff = session.issued - Date.now();
+						this.setSession(session);
+						this._onLogin(session);
+						resolve(session);
+					} else if (!error && link) {
+						this._onLink(link);
+						resolve(`${capitalizeFirstLetter(link)} successfully linked.`);
+					}
+					this._oauthComplete = true;
+					reject(error);
+				}
+			};
+			window.addEventListener('message', listener);
+
 			if (!_oauthWindow) {
 				reject({ error: 'Authorization popup blocked' });
 			}
@@ -551,26 +570,10 @@ class Superlogin extends EventEmitter2 {
 				if (_oauthWindow.closed) {
 					clearInterval(_oauthInterval);
 					if (!this._oauthComplete) {
-						this.authComplete = true;
 						reject({ error: 'Authorization cancelled' });
 					}
 				}
 			}, 500);
-
-			window.superlogin = {};
-			window.superlogin.oauthSession = (error, session, link) => {
-				if (!error && session) {
-					session.serverTimeDiff = session.issued - Date.now();
-					this.setSession(session);
-					this._onLogin(session);
-					return resolve(session);
-				} else if (!error && link) {
-					this._onLink(link);
-					return resolve(`${capitalizeFirstLetter(link)} successfully linked.`);
-				}
-				this._oauthComplete = true;
-				return reject(error);
-			};
 		});
 	}
 
