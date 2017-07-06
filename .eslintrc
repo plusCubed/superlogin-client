@@ -8,10 +8,6 @@ env:
 extends: airbnb-base
 
 rules:
-    no-tabs: 0
-    indent: [error, tab]
-    no-mixed-spaces-and-tabs: [error, smart-tabs]
-
     no-underscore-dangle: off
     comma-dangle: off
 
